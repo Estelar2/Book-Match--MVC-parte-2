@@ -1,0 +1,57 @@
+package security;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+
+import java.nio.charset.StandardCharsets;
+import java.security.Key;
+import java.util.Date;
+
+public class JwtUtil {
+
+    /*
+     * Em projeto real, coloque essa chave em variável de ambiente.
+     * Ela precisa ter pelo menos 32 caracteres para HS256.
+     */
+    private static final String SECRET = "bookmatch-api-chave-secreta-jwt-2026";
+    private static final long EXPIRATION_TIME = 1000 * 60 * 60 * 2; // 2 horas
+
+    private static Key getSigningKey() {
+        return Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public static String gerarToken(String email) {
+        Date agora = new Date();
+        Date expiracao = new Date(agora.getTime() + EXPIRATION_TIME);
+
+        return Jwts.builder()
+                .setSubject(email)
+                .setIssuedAt(agora)
+                .setExpiration(expiracao)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public static boolean validarToken(String token) {
+        try {
+            getClaims(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static String extrairEmail(String token) {
+        return getClaims(token).getSubject();
+    }
+
+    private static Claims getClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+    }
+}
